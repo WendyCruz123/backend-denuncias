@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Rol {
+  id                  String    @id @default(uuid()) @map("idroles") @db.Uuid
+  nombre              String    @unique @db.VarChar(50)
+  descripcion         String?   @db.VarChar(200)
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  rolesUsuario RolUsuario[]
+
+  @@map("aer_roles")
+}
+
+model Persona {
+  id                  String    @id @default(uuid()) @map("idpersona") @db.Uuid
+  nombres             String    @db.VarChar(150)
+  apellidos           String    @db.VarChar(150)
+  celular             String    @db.VarChar(30)
+  email               String    @db.VarChar(150)
+  ci                  String    @db.VarChar(30)
+  tipoPersona         String    @default("FUNCIONARIO") @map("tipo_persona") @db.VarChar(30)
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  usuario Usuario?
+
+  @@map("aer_persona")
+}
+
+model Area {
+  id                  String    @id @default(uuid()) @map("idarea") @db.Uuid
+  nombre              String    @db.VarChar(120)
+  descripcion         String?   @db.VarChar(200)
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  usuarios   Usuario[]
+  categorias Categoria[]
+  soluciones Solucion[]
+
+  @@map("aer_area")
+}
+
+model Usuario {
+  id                  String    @id @default(uuid()) @map("idusers") @db.Uuid
+  username            String    @unique @db.VarChar(80)
+  passwordHash        String    @map("password_hash") @db.VarChar(255)
+  personaId           String    @unique @map("persona_id") @db.Uuid
+  areaId              String    @map("area_id") @db.Uuid
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  persona      Persona      @relation(fields: [personaId], references: [id])
+  area         Area         @relation(fields: [areaId], references: [id])
+  rolesUsuario RolUsuario[]
+
+  @@map("aer_usuario")
+}
+
+model RolUsuario {
+  id                  String    @id @default(uuid()) @map("id_rol_usuario") @db.Uuid
+  roleId              String    @map("role_id") @db.Uuid
+  userId              String    @map("user_id") @db.Uuid
+  fechaInicio         DateTime  @default(now()) @map("fecha_inicio") @db.Date
+  fechaFin            DateTime? @map("fecha_fin") @db.Date
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  rol     Rol     @relation(fields: [roleId], references: [id])
+  usuario Usuario @relation(fields: [userId], references: [id])
+
+  @@map("aer_rol_usuario")
+}
+
+model Categoria {
+  id                  String    @id @default(uuid()) @map("idcategoria") @db.Uuid
+  nombre              String    @db.VarChar(150)
+  descripcion         String?   @db.Text
+  areaId              String    @map("area_id") @db.Uuid
+  leyRespaldo         String?   @map("ley_respaldo") @db.VarChar(255)
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  area      Area       @relation(fields: [areaId], references: [id])
+  denuncias Denuncia[]
+
+  @@map("aer_categoria")
+}
+
+model Denuncia {
+  id                   String    @id @default(uuid()) @map("iddenuncia") @db.Uuid
+  categoriaId          String    @map("categoria_id") @db.Uuid
+  descripcion          String    @db.Text
+  celularContacto      String    @map("celular_contacto") @db.VarChar(30)
+  nombresDenunciante   String?   @map("nombres_denunciante") @db.VarChar(150)
+  apellidosDenunciante String?   @map("apellidos_denunciante") @db.VarChar(150)
+  anonimo              Boolean   @default(false)
+  latitud              Decimal?  @db.Decimal(10, 7)
+  longitud             Decimal?  @db.Decimal(10, 7)
+  direccionTexto       String?   @map("direccion_texto") @db.VarChar(250)
+  detalleCategoriaOtro String?   @map("detalle_categoria_otro") @db.VarChar(200)
+  estadoRegistro       String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion          String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion      String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion        DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion  String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion    DateTime? @map("_fecha_modificacion")
+
+  categoria        Categoria        @relation(fields: [categoriaId], references: [id])
+  soluciones       Solucion[]
+  archivos         Archivo[]
+  historialEstados DenunciaEstado[]
+
+  @@map("aer_denuncia")
+}
+
+model Estado {
+  id                  String    @id @default(uuid()) @map("idestado") @db.Uuid
+  nombre              String    @unique @db.VarChar(100)
+  orden               Int
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  denunciasEstado DenunciaEstado[]
+
+  @@map("aer_estado")
+}
+
+model DenunciaEstado {
+  id                  String    @id @default(uuid()) @map("id_denuncia_estado") @db.Uuid
+  estadoId            String    @map("estado_id") @db.Uuid
+  denunciaId          String    @map("denuncia_id") @db.Uuid
+  fechaCambio         DateTime  @default(now()) @map("fecha_cambio")
+  comentario          String?   @db.Text
+  estadoRegistro      String    @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  estado   Estado   @relation(fields: [estadoId], references: [id])
+  denuncia Denuncia @relation(fields: [denunciaId], references: [id])
+
+  @@map("aer_denuncia_estado")
+}
+
+model Solucion {
+  id                  String    @id @default(uuid()) @map("id_solucion") @db.Uuid
+  denunciaId          String    @map("id_denuncia") @db.Uuid
+  areaId              String    @map("area_id") @db.Uuid
+  titulo              String    @db.VarChar(180)
+  descripcion         String    @db.Text
+  fechaSolucion       DateTime  @map("fecha_solucion")
+  estado              String    @default("ACTIVO") @db.VarChar(30)
+  transaccion         String    @default("CREADO") @map("_transaccion") @db.VarChar(30)
+  usuarioCreacion     String?   @map("_usuario_creacion") @db.Uuid
+  fechaCreacion       DateTime  @default(now()) @map("_fecha_creacion")
+  usuarioModificacion String?   @map("_usuario_modificacion") @db.Uuid
+  fechaModificacion   DateTime? @map("_fecha_modificacion")
+
+  denuncia Denuncia  @relation(fields: [denunciaId], references: [id])
+  area     Area      @relation(fields: [areaId], references: [id])
+  archivos Archivo[]
+
+  @@map("aer_solucion")
+}
+
+model Archivo {
+  id             String   @id @default(uuid()) @map("id_archivo") @db.Uuid
+  solucionId     String?  @map("solucion_id") @db.Uuid
+  denunciaId     String?  @map("denuncia_id") @db.Uuid
+  urlArchivo     String   @map("url_archivo") @db.Text
+  tipoArchivo    String   @map("tipo_archivo") @db.VarChar(20)
+  nombreOriginal String?  @map("nombre_original") @db.VarChar(255)
+  descripcion    String?  @db.Text
+  estadoRegistro String   @default("ACTIVO") @map("_estado") @db.VarChar(30)
+  fechaCreacion  DateTime @default(now()) @map("_fecha_creacion")
+
+  solucion Solucion? @relation(fields: [solucionId], references: [id])
+  denuncia Denuncia? @relation(fields: [denunciaId], references: [id])
+
+  @@map("aer_archivo")
+}
