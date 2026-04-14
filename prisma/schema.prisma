@@ -125,9 +125,10 @@ model Categoria {
 
 model Denuncia {
   id                   String    @id @default(uuid()) @map("iddenuncia") @db.Uuid
+  codigoSeguimiento    String?   @unique @map("codigo_seguimiento") @db.VarChar(20)
   categoriaId          String    @map("categoria_id") @db.Uuid
   descripcion          String    @db.Text
-  celularContacto      String    @map("celular_contacto") @db.VarChar(30)
+  celularContacto      String?   @map("celular_contacto") @db.VarChar(30)
   nombresDenunciante   String?   @map("nombres_denunciante") @db.VarChar(150)
   apellidosDenunciante String?   @map("apellidos_denunciante") @db.VarChar(150)
   anonimo              Boolean   @default(false)

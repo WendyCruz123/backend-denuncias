@@ -11,7 +11,11 @@ import { FilterDenunciaDto } from './dto/filter-denuncia.dto';
 export class DenunciaService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private aplicarRestriccionPorArea(where: any, filters: FilterDenunciaDto, user?: any) {
+  private aplicarRestriccionPorArea(
+    where: any,
+    filters: FilterDenunciaDto,
+    user?: any,
+  ) {
     const esFuncionario = user?.roles?.includes('FUNCIONARIO');
 
     if (esFuncionario) {
@@ -28,6 +32,16 @@ export class DenunciaService {
         areaId: filters.areaId,
       };
     }
+  }
+
+  private async generarCodigoSeguimiento(): Promise<string> {
+    const resultado = await this.prisma.$queryRawUnsafe<
+      Array<{ nextval: bigint }>
+    >(`SELECT nextval('aer_denuncia_codigo_seq')`);
+
+    const numero = Number(resultado[0].nextval);
+
+    return `COD-${numero.toString().padStart(3, '0')}`;
   }
 
   async create(dto: CreateDenunciaDto) {
@@ -64,14 +78,18 @@ export class DenunciaService {
     }
 
     const anonimo = dto.anonimo ?? false;
+    const codigoSeguimiento = await this.generarCodigoSeguimiento();
 
     const denuncia = await this.prisma.denuncia.create({
       data: {
+        codigoSeguimiento,
         categoriaId: dto.categoriaId,
         descripcion: dto.descripcion.trim(),
-        celularContacto: dto.celularContacto.trim(),
+        celularContacto: dto.celularContacto?.trim() || null,
         nombresDenunciante: anonimo ? null : dto.nombresDenunciante?.trim(),
-        apellidosDenunciante: anonimo ? null : dto.apellidosDenunciante?.trim(),
+        apellidosDenunciante: anonimo
+          ? null
+          : dto.apellidosDenunciante?.trim(),
         anonimo,
         latitud: dto.latitud,
         longitud: dto.longitud,
@@ -95,7 +113,100 @@ export class DenunciaService {
       },
     });
 
-    return this.findOne(denuncia.id);
+    return {
+      mensaje: 'Denuncia registrada correctamente',
+      codigoSeguimiento: denuncia.codigoSeguimiento,
+      denuncia: await this.findOne(denuncia.id),
+    };
+  }
+
+  async seguimientoPublico(codigo: string) {
+    const codigoNormalizado = codigo?.trim().toUpperCase();
+
+    if (!codigoNormalizado) {
+      throw new BadRequestException(
+        'Debe proporcionar un código de seguimiento',
+      );
+    }
+
+    const denuncia = await this.prisma.denuncia.findFirst({
+      where: {
+        codigoSeguimiento: codigoNormalizado,
+        estadoRegistro: 'ACTIVO',
+      },
+      include: {
+        categoria: {
+          include: {
+            area: true,
+          },
+        },
+        historialEstados: {
+          where: {
+            estadoRegistro: 'ACTIVO',
+          },
+          include: {
+            estado: true,
+          },
+          orderBy: {
+            fechaCambio: 'desc',
+          },
+        },
+        soluciones: {
+          where: {
+            estado: 'ACTIVO',
+          },
+          include: {
+            archivos: {
+              where: {
+                estadoRegistro: 'ACTIVO',
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!denuncia) {
+      throw new NotFoundException(
+        'No se encontró ninguna denuncia con ese código',
+      );
+    }
+
+    const estadoActual =
+      denuncia.historialEstados[0]?.estado?.nombre || 'SIN ESTADO';
+
+    return {
+      codigoSeguimiento: denuncia.codigoSeguimiento,
+      estadoActual,
+      denuncia: {
+        id: denuncia.id,
+        categoria: denuncia.categoria.nombre,
+        area: denuncia.categoria.area.nombre,
+        descripcion: denuncia.descripcion,
+        anonimo: denuncia.anonimo,
+        direccionTexto: denuncia.direccionTexto,
+        detalleCategoriaOtro: denuncia.detalleCategoriaOtro,
+        fechaCreacion: denuncia.fechaCreacion,
+      },
+      historialEstados: denuncia.historialEstados.map((item) => ({
+        estado: item.estado.nombre,
+        comentario: item.comentario,
+        fechaCambio: item.fechaCambio,
+      })),
+      soluciones: denuncia.soluciones.map((solucion) => ({
+        id: solucion.id,
+        titulo: solucion.titulo,
+        descripcion: solucion.descripcion,
+        fechaSolucion: solucion.fechaSolucion,
+        archivos: solucion.archivos.map((archivo) => ({
+          id: archivo.id,
+          urlArchivo: archivo.urlArchivo,
+          tipoArchivo: archivo.tipoArchivo,
+          nombreOriginal: archivo.nombreOriginal,
+          descripcion: archivo.descripcion,
+        })),
+      })),
+    };
   }
 
   async findAll(filters: FilterDenunciaDto, user?: any) {
@@ -287,7 +398,10 @@ export class DenunciaService {
       throw new NotFoundException('Denuncia no encontrada');
     }
 
-    if (user?.roles?.includes('FUNCIONARIO') && user.areaId !== denuncia.categoria.areaId) {
+    if (
+      user?.roles?.includes('FUNCIONARIO') &&
+      user.areaId !== denuncia.categoria.areaId
+    ) {
       throw new BadRequestException('No puede ver denuncias de otra área');
     }
 

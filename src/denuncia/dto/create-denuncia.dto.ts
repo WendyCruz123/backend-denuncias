@@ -16,10 +16,10 @@ export class CreateDenunciaDto {
   @IsNotEmpty()
   descripcion!: string;
 
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(30)
-  celularContacto!: string;
+  celularContacto?: string;
 
   @IsOptional()
   @IsString()

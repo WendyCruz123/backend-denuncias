@@ -25,6 +25,11 @@ export class DenunciaController {
     return this.denunciaService.create(dto);
   }
 
+  @Get('seguimiento/:codigo')
+  seguimientoPublico(@Param('codigo') codigo: string) {
+    return this.denunciaService.seguimientoPublico(codigo);
+  }
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('SUPERADMIN', 'ADMIN', 'FUNCIONARIO')
   @Get()
